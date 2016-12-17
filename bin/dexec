@@ -1,0 +1,51 @@
+#!/bin/bash
+DIR="$(pwd)"
+INSTANCE="$1"
+CMD="$2"
+
+# If no instance is given, try to resolve by configuration
+LOOKUP_DIR="$DIR"
+while [ -z "$INSTANCE" ] && [ -e "$LOOKUP_DIR" ] && [ "/" != "$LOOKUP_DIR" ]; do
+  if [ -e "$LOOKUP_DIR/.dexec" ]; then
+    INSTANCE=$(cat $LOOKUP_DIR/.dexec)
+  else
+    LOOKUP_DIR=$(cd "$LOOKUP_DIR/../" && pwd)
+  fi
+done
+
+# Search as fallback instead
+LOOKUP_DIR="$DIR"
+while [ -z "$INSTANCE" ] && [ -e "$LOOKUP_DIR" ] && [ "/" != "$LOOKUP_DIR" ]; do
+  if [ -e "$LOOKUP_DIR/.dexec-search" ]; then
+    SEARCH=$(cat $LOOKUP_DIR/.dexec-search)
+    MATCH=$(docker ps|grep $SEARCH)
+    if [ ! -z "$MATCH" ]; then
+      INSTANCE=${MATCH:0:12}
+    fi
+  else
+    LOOKUP_DIR=$(cd "$LOOKUP_DIR/../" && pwd)
+  fi
+done
+
+# Still no instance? Ask User for instance ID
+while [ -z "$INSTANCE" ]; do
+  echo "Instance ID to connect to: "
+  read INSTANCE
+done
+
+# Resolve the command to execute
+LOOKUP_DIR="$DIR"
+while [ -z "$CMD" ] && [ -e "$LOOKUP_DIR" ] && [ "/" != "$LOOKUP_DIR" ]; do
+  if [ -e "$LOOKUP_DIR/.dexec-cmd" ]; then
+    CMD=$(cat $LOOKUP_DIR/.dexec-cmd)
+  else
+    LOOKUP_DIR=$(cd "$LOOKUP_DIR/../" && pwd)
+  fi
+done
+if [ -z "$CMD" ]; then
+  CMD="/bin/bash"
+fi
+
+# Connect to docker
+echo; echo "Connecting to Docker instance: '$INSTANCE' with command '$CMD'";
+docker exec -it $INSTANCE $CMD

@@ -1,0 +1,42 @@
+version: '2'
+
+networks:
+
+  sfdocker:
+    driver: bridge
+
+services:
+
+  mysql:
+    container_name: sfdocker_mysql
+    build: ./var/docker/mysql56
+    restart: on-failure:5
+    environment:
+      - MYSQL_DATABASE=main
+      - MYSQL_USER=main
+      - MYSQL_PASSWORD=main
+      - MYSQL_ROOT_PASSWORD=main
+    networks:
+      - sfdocker
+    ports:
+      - "33060:3306"
+    volumes:
+      - /var/lib/mysql
+
+  php:
+    container_name: sfdocker_php
+    build: ./var/docker/php71
+    restart: on-failure:5
+    environment:
+      - TERM=xterm
+    networks:
+      - sfdocker
+    ports:
+      - "8080:80"
+      - "4430:443"
+      - "2121:21"
+      - "2222:22"
+    links:
+      - mysql:db
+    volumes:
+      - ~/.composer:/var/www/html/.composer
